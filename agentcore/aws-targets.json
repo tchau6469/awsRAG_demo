@@ -1,1 +1,8 @@
-[]
+[
+    {
+        "name": "default",
+        "description": "AWS RAG AgentCore Demo Environment",
+        "account": "626928146966",
+        "region": "us-east-1"
+    }
+]

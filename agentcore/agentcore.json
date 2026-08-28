@@ -7,10 +7,48 @@
     "agentcore:created-by": "agentcore-cli",
     "agentcore:project-name": "awsRAG"
   },
-  "runtimes": [],
-  "memories": [],
+  "runtimes": [
+    {
+      "name": "mcp_server",
+      "build": "CodeZip",
+      "entrypoint": "main.py",
+      "codeLocation": "app/mcp_server/",
+      "runtimeVersion": "PYTHON_3_14",
+      "networkMode": "PUBLIC",
+      "instrumentation": {
+        "enableOtel": false
+      },
+      "protocol": "MCP"
+    },
+    {
+      "name": "orchestrator",
+      "build": "CodeZip",
+      "entrypoint": "main.py",
+      "codeLocation": "app/orchestrator/",
+      "runtimeVersion": "PYTHON_3_14",
+      "networkMode": "PUBLIC",
+      "protocol": "HTTP"
+    }
+  ],
+  "memories": [
+    {
+      "name": "tempAgentMemory",
+      "eventExpiryDuration": 30,
+      "strategies": []
+    },
+    {
+      "name": "orchestratorMemory",
+      "eventExpiryDuration": 30,
+      "strategies": []
+    }
+  ],
   "knowledgeBases": [],
-  "credentials": [],
+  "credentials": [
+    {
+      "authorizerType": "ApiKeyCredentialProvider",
+      "name": "awsRAGGemini"
+    }
+  ],
   "evaluators": [],
   "onlineEvalConfigs": [],
   "agentCoreGateways": [],

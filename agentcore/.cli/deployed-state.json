@@ -1,3 +1,38 @@
 {
-  "targets": {}
+  "targets": {
+    "default": {
+      "resources": {
+        "runtimes": {
+          "orchestrator": {
+            "runtimeId": "awsRAG_orchestrator-wBjN8H6OCt",
+            "runtimeArn": "arn:aws:bedrock-agentcore:us-east-1:626928146966:runtime/awsRAG_orchestrator-wBjN8H6OCt",
+            "roleArn": "arn:aws:iam::626928146966:role/AgentCore-awsRAG-default-ApplicationAgentOrchestrat-nqaIxPplVSlx"
+          },
+          "mcp_server": {
+            "runtimeId": "awsRAG_mcp_server-1Fzww8Hy6A",
+            "runtimeArn": "arn:aws:bedrock-agentcore:us-east-1:626928146966:runtime/awsRAG_mcp_server-1Fzww8Hy6A",
+            "roleArn": "arn:aws:iam::626928146966:role/AgentCore-awsRAG-default-ApplicationAgentMcpServerR-kUUtzS4XsybF"
+          }
+        },
+        "memories": {
+          "tempAgentMemory": {
+            "memoryId": "awsRAG_tempAgentMemory-6nqcW3FAyC",
+            "memoryArn": "arn:aws:bedrock-agentcore:us-east-1:626928146966:memory/awsRAG_tempAgentMemory-6nqcW3FAyC"
+          },
+          "orchestratorMemory": {
+            "memoryId": "awsRAG_orchestratorMemory-8gIWT8GAAH",
+            "memoryArn": "arn:aws:bedrock-agentcore:us-east-1:626928146966:memory/awsRAG_orchestratorMemory-8gIWT8GAAH"
+          }
+        },
+        "credentials": {
+          "awsRAGGemini": {
+            "credentialProviderArn": "arn:aws:bedrock-agentcore:us-east-1:626928146966:token-vault/default/apikeycredentialprovider/awsRAGGemini"
+          }
+        },
+        "stackName": "AgentCore-awsRAG-default",
+        "identityKmsKeyArn": "arn:aws:kms:us-east-1:626928146966:key/b5edce0f-733d-478f-83a1-34b78669bb9b",
+        "deployHash": "83261f5312470c9c"
+      }
+    }
+  }
 }
