@@ -1,0 +1,14 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "InvokeParksMcpRuntime",
+            "Effect": "Allow",
+            "Action": "bedrock-agentcore:InvokeAgentRuntime",
+            "Resource": [
+                "arn:aws:bedrock-agentcore:us-east-1:626928146966:runtime/awsRAG_mcp_server-1Fzww8Hy6A",
+                "arn:aws:bedrock-agentcore:us-east-1:626928146966:runtime/awsRAG_mcp_server-1Fzww8Hy6A/runtime-endpoint/DEFAULT"
+            ]
+        }
+    ]
+}

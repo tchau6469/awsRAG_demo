@@ -18,7 +18,33 @@
       "instrumentation": {
         "enableOtel": false
       },
-      "protocol": "MCP"
+      "protocol": "MCP",
+      "envVars": [
+        {
+          "name": "KNOWLEDGE_BASE_ID",
+          "value": "ETSIYTYK5Q"
+        },
+        {
+          "name": "POSTGRES_HOST",
+          "value": "database-1.cluster-c6bwqa0w06ss.us-east-1.rds.amazonaws.com"
+        },
+        {
+          "name": "POSTGRES_PORT",
+          "value": "5432"
+        },
+        {
+          "name": "POSTGRES_DB",
+          "value": "postgres"
+        },
+        {
+          "name": "POSTGRES_USER",
+          "value": "parks_app"
+        }
+      ],
+      "additionalPolicies": [
+        "policies/retrieve-knowledge-base.json",
+        "policies/connect-aurora.json"
+      ]
     },
     {
       "name": "orchestrator",
@@ -27,7 +53,20 @@
       "codeLocation": "app/orchestrator/",
       "runtimeVersion": "PYTHON_3_14",
       "networkMode": "PUBLIC",
-      "protocol": "HTTP"
+      "protocol": "HTTP",
+      "envVars": [
+        {
+          "name": "MCP_ENDPOINT",
+          "value": "https://bedrock-agentcore.us-east-1.amazonaws.com/runtimes/arn%3Aaws%3Abedrock-agentcore%3Aus-east-1%3A626928146966%3Aruntime%2FawsRAG_mcp_server-1Fzww8Hy6A/invocations"
+        },
+        {
+          "name": "MCP_AUTH_MODE",
+          "value": "aws_iam"
+        }
+      ],
+      "additionalPolicies": [
+        "policies/invoke-mcp-server.json"
+      ]
     }
   ],
   "memories": [

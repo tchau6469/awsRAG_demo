@@ -1,3 +1,4 @@
+import os
 from typing import Any
 from collections import OrderedDict
 from strands import Agent, tool
@@ -7,30 +8,30 @@ from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from model.load import load_model
 from mcp_client.client import get_streamable_http_mcp_client
 from memory.session import get_memory_session_manager
+from prompt import DEFAULT_SYSTEM_PROMPT
 
 app = BedrockAgentCoreApp()
 log = app.logger
 
+#list all tools while in local dev 
+if os.getenv("LOCAL_DEV") == "1":
+    mcp_client = get_streamable_http_mcp_client()
+
+    with mcp_client:
+        mcp_tools = mcp_client.list_tools_sync()
+
+        for mcp_tool in mcp_tools:
+            print(mcp_tool.tool_name)
+
+
 # Define a Streamable HTTP MCP Client
 mcp_clients = [get_streamable_http_mcp_client()]
-
-DEFAULT_SYSTEM_PROMPT = """
-You are a helpful assistant. Use tools when appropriate.
-
-"""
 
 
 # Define a collection of tools used by the model
 tools = []
 
 _INLINE_FUNCTION_NAMES = set()
-
-# Define a simple function tool
-@tool
-def add_numbers(a: int, b: int) -> int:
-    """Return the sum of two numbers"""
-    return a+b
-tools.append(add_numbers)
 
 
 

@@ -12,12 +12,39 @@ from mcp_tools.models import Park, ParkLookupResult
 mcp = FastMCP("mcp", host="0.0.0.0", stateless_http=True)
 
 async def connect():
+
+    host = os.environ["POSTGRES_HOST"]
+    port = int(os.environ["POSTGRES_PORT"])
+    user = os.environ["POSTGRES_USER"]
+    dbname=os.environ["POSTGRES_DB"]
+
+    if os.getenv("LOCAL_DEV") == "1":
+        return await psycopg.AsyncConnection.connect(
+            host=host,
+            port=port,
+            dbname=dbname,
+            user=user,
+            password=os.environ["POSTGRES_PASSWORD"],
+            
+        )
+
+    rds = boto3.client("rds", region_name="us-east-1")
+
+    token = rds.generate_db_auth_token(
+        DBHostname=host,
+        Port=port,
+        DBUsername=user,
+        Region="us-east-1",
+    )
+
     return await psycopg.AsyncConnection.connect(
-        host=os.environ["POSTGRES_HOST"],
-        port=int(os.environ["POSTGRES_PORT"]),
-        dbname=os.environ["POSTGRES_DB"],
-        user=os.environ["POSTGRES_USER"],
-        password=os.environ["POSTGRES_PASSWORD"],
+        host=host,
+        port=port,
+        dbname=dbname,
+        user=user,
+        password=token,
+        sslmode="require",
+        
     )
 
 @mcp.tool()

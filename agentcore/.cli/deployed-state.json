@@ -31,7 +31,7 @@
         },
         "stackName": "AgentCore-awsRAG-default",
         "identityKmsKeyArn": "arn:aws:kms:us-east-1:626928146966:key/b5edce0f-733d-478f-83a1-34b78669bb9b",
-        "deployHash": "83261f5312470c9c"
+        "deployHash": "dc6396d767cee169"
       }
     }
   }
