@@ -12,7 +12,7 @@ MCP_ENDPOINT = os.getenv("MCP_ENDPOINT", "http://localhost:8000/mcp")
 #get MCP_AUTH_MODE value from envVar if prod, else just a string of none
 MCP_AUTH_MODE = os.getenv("MCP_AUTH_MODE", "none")
 
-def get_streamable_http_mcp_client() -> MCPClient:
+def get_streamable_http_mcp_client(tool_filters=None) -> MCPClient:
     """Returns an MCP Client compatible with Strands"""
     if MCP_AUTH_MODE == "aws_iam":
         return MCPClient(
@@ -20,9 +20,11 @@ def get_streamable_http_mcp_client() -> MCPClient:
                 endpoint=MCP_ENDPOINT,
                 aws_region="us-east-1",
                 aws_service="bedrock-agentcore"
-            )
+            ),
+            tool_filters=tool_filters,
         )
 
     return MCPClient(
-        lambda: streamablehttp_client(MCP_ENDPOINT)
+        lambda: streamablehttp_client(MCP_ENDPOINT),
+        tool_filters=tool_filters,
     )

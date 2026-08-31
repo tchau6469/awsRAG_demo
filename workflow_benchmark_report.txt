@@ -1,0 +1,163 @@
+AGENT VS GRAPH WORKFLOW BENCHMARK REPORT
+========================================
+
+Date: 2026-08-30 (America/Chicago)
+Project: awsRAG
+Configured model: Gemini 3.5 Flash
+
+
+IMPLEMENTATION UNDER TEST
+-------------------------
+
+1. Agent mode now uses Agent.stream_async() and forwards its user-facing stream
+   events, matching the pre-graph response behavior.
+
+2. Graph mode now uses Graph.stream_async(), suppresses router/resolver/evidence
+   node streams, and forwards only events from the synthesis node. Users should
+   therefore see one polished final response instead of internal graph output.
+
+3. The graph synthesis prompt now explicitly requires polished natural prose,
+   direct answers, concise organization, important caveats, safe adherence to a
+   requested tone, and no exposure of internal evidence or graph terminology.
+
+
+LIVE POST-CHANGE BENCHMARK
+--------------------------
+
+Identical query selected for both modes:
+
+    Are dogs allowed in Acadia National Park?
+
+Conditions:
+
+- Local AgentCore development runtimes
+- Same MCP server, Aurora database, and Bedrock Knowledge Base
+- Same Gemini 3.5 Flash model
+- A unique, fresh session ID for each invocation
+- HTTP streaming enabled
+
+Agent mode result: COMPLETED
+
+- Model calls: 3
+- Tool calls: 2
+  - find_parks_by_name
+  - retrieve_context
+- Input tokens: 8,977
+- Output tokens: 1,430
+- Total tokens: 10,407
+- Model invocation duration from OTEL trace: 14.240 seconds
+- End-to-end HTTP duration measured by curl: 17.426 seconds
+- HTTP response-header latency: 0.005 seconds
+
+The response-header measurement is not meaningful time-to-first-answer-token:
+the streaming HTTP response sends headers immediately, before model work finishes.
+No timestamped streaming client was used, so this report does not claim a true
+time-to-first-visible-token measurement.
+
+Agent trace:
+
+    agentcore/.cli/traces/otlp/
+    orchestrator-83cd991290f04f6ec877bd97b8e5e16c.otlp.jsonl
+
+Graph mode result: BLOCKED BY MODEL QUOTA
+
+The first authenticated graph attempt completed the router and park resolver,
+then Gemini rejected the Knowledge Base node with HTTP 429. The reported quota
+was 20 free-tier generate-content requests for Gemini 3.5 Flash. Later attempts
+were rejected at the router before useful work began.
+
+Because the graph did not reach synthesis, its partial elapsed time and partial
+token usage are not comparable to the completed agent invocation. They are
+intentionally excluded from the main comparison. The HTTP endpoint still
+returned status 200 because response headers had already been sent before the
+stream raised the model error; this does not mean the graph completed.
+
+Consequently, a valid post-change winner cannot be declared from today's live
+run. A clean rerun is required after the Gemini quota resets or billing/quota is
+increased.
+
+
+SUPPLEMENTARY COMPLETED SAME-PROMPT COMPARISON
+----------------------------------------------
+
+The most recent completed traces contain an earlier same-prompt comparison.
+This comparison predates the new synthesis wording, so it is supporting evidence
+rather than a substitute for the blocked post-change graph benchmark.
+
+Identical historical query:
+
+    What can I do at Arcadia?
+
+Agent workflow:
+
+- Model calls: 5
+- Input tokens: 21,396
+- Output tokens: 1,387
+- Total tokens: 22,783
+- Invocation duration: 22.511 seconds
+
+Graph workflow:
+
+- Model calls: 7
+  - Router: 1
+  - Park resolver: 2
+  - Knowledge Base node: 3
+  - Synthesis node: 1
+- Input tokens: 16,833
+- Output tokens: 2,993
+- Total tokens: 19,826
+- End-to-end graph duration: 107.029 seconds
+
+Historical difference (graph relative to agent):
+
+- Input tokens: 4,563 fewer (21.3% reduction)
+- Output tokens: 1,606 more (115.8% increase)
+- Total tokens: 2,957 fewer (13.0% reduction)
+- Duration: 84.518 seconds slower
+- Latency multiplier: graph took approximately 4.75 times as long
+
+Historical traces:
+
+    Agent:
+    agentcore/.cli/traces/otlp/
+    orchestrator-d44296bb6e735de52d705fc076edf685.otlp.jsonl
+
+    Graph:
+    agentcore/.cli/traces/otlp/
+    orchestrator-d614d4e1af628d055d230c3ae23259c2.otlp.jsonl
+
+
+INTERPRETATION
+--------------
+
+The completed historical comparison suggests that the specialized graph can use
+fewer total tokens because each node receives a narrower prompt and tool set.
+However, it is much slower because its router, resolver, retrieval, and synthesis
+model calls execute sequentially. It also produces substantially more output
+tokens through intermediate agent reports and final synthesis.
+
+The single-agent workflow is considerably faster for this simple single-park
+question. The graph's main benefit is deterministic routing and separation of
+responsibilities, not latency. Neither workflow is inherently always cheaper:
+retrieval-result size, repeated tool cycles, and whether the model batches tool
+calls can outweigh the architectural difference.
+
+
+RECOMMENDED CLEAN RERUN
+-----------------------
+
+After the Gemini quota resets, run the same single-park prompt once per mode with
+fresh session IDs. Record accumulated usage from the completed AgentResult or
+GraphResult and measure:
+
+- End-to-end duration
+- Time to first synthesis text token
+- Input tokens
+- Output tokens
+- Total tokens
+- Model-call count
+- Tool-call count
+
+For a reliable conclusion, run each mode at least five times and compare median
+values. One run is sensitive to model nondeterminism, retrieval variation, and
+whether tool calls are issued sequentially or in parallel.

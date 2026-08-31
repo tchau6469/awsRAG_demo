@@ -1,67 +1,23 @@
 import os
 from typing import Any
 from collections import OrderedDict
-from strands import Agent, tool
 import asyncio
-from strands.agent.conversation_manager.null_conversation_manager import NullConversationManager
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
-from model.load import load_model
-from mcp_client.client import get_streamable_http_mcp_client
-from memory.session import get_memory_session_manager
-from prompt import DEFAULT_SYSTEM_PROMPT
+
+from agent.tools import tools
+from agent.graph import create_content_loop
+from prompts import DEFAULT_SYSTEM_PROMPT
+from agent.agent_factory import agent_factory
 
 app = BedrockAgentCoreApp()
 log = app.logger
 
-#list all tools while in local dev 
-if os.getenv("LOCAL_DEV") == "1":
-    mcp_client = get_streamable_http_mcp_client()
 
-    with mcp_client:
-        mcp_tools = mcp_client.list_tools_sync()
-
-        for mcp_tool in mcp_tools:
-            print(mcp_tool.tool_name)
-
-
-# Define a Streamable HTTP MCP Client
-mcp_clients = [get_streamable_http_mcp_client()]
-
-
-# Define a collection of tools used by the model
-tools = []
 
 _INLINE_FUNCTION_NAMES = set()
 
+WORKFLOW_MODE = os.getenv("WORKFLOW_MODE", "agent")
 
-
-# Add MCP client to tools if available
-for mcp_client in mcp_clients:
-    if mcp_client:
-        tools.append(mcp_client)
-
-
-def _make_conversation_manager():
-    return NullConversationManager()
-
-def agent_factory():
-    cache = {}
-    def get_or_create_agent(session_id, user_id):
-        _actor_id = user_id
-        key = f"{session_id}/{_actor_id}"
-        if key not in cache:
-            cache[key] = Agent(
-                model=load_model(),
-                session_manager=get_memory_session_manager(session_id, _actor_id),
-                conversation_manager=_make_conversation_manager(),
-                system_prompt=DEFAULT_SYSTEM_PROMPT,
-                tools=tools,
-                hooks=[
-                ],
-            )
-        return cache[key]
-    return get_or_create_agent
-get_or_create_agent = agent_factory()
 
 
 def strip_trailing_tool_use(messages: Any) -> list[dict]:
@@ -135,27 +91,45 @@ def _is_inline_function_call(event: dict) -> bool:
     return tool_use is not None and tool_use.get("name") in _INLINE_FUNCTION_NAMES
 
 
+get_default_agent = agent_factory(tools, DEFAULT_SYSTEM_PROMPT)
 
 @app.entrypoint
 async def invoke(payload, context):
+
     log.info("Invoking Agent.....")
 
-
+    prompt = _extract_prompt(payload)
     session_id = getattr(context, 'session_id', 'default-session')
     user_id = getattr(context, 'user_id', 'default-user')
-    agent = get_or_create_agent(session_id, user_id)
 
-    prompt = _extract_prompt(payload)
+    if WORKFLOW_MODE == "graph":
+        graph = create_content_loop(session_id, user_id)
+        async for graph_event in graph.stream_async(prompt):
+            if graph_event.get("type") != "multiagent_node_stream":
+                continue
+            if graph_event.get("node_id") != "synthesis":
+                continue
 
+            agent_event = graph_event.get("event")
+            if not isinstance(agent_event, dict) or "event" not in agent_event:
+                continue
 
-    async for event in agent.stream_async(
-        prompt,
-    ):
+            cbs = agent_event["event"].get("contentBlockStart")
+            if cbs is not None and not cbs.get("start"):
+                continue
+
+            yield agent_event
+        return
+
+    agent = get_default_agent(session_id, user_id)
+    async for event in agent.stream_async(prompt):
         if not isinstance(event, dict) or "event" not in event:
             continue
+
         cbs = event["event"].get("contentBlockStart")
         if cbs is not None and not cbs.get("start"):
             continue
+
         yield event
 
 
